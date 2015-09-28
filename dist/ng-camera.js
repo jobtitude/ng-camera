@@ -1,1 +1,205 @@
-!function(t){"use strict";t.module("camera",[])}(angular),function(t){"use strict";function e(t,e){function o(o){o.libraryLoaded=!1,o.cameraLive=!1,o.activeCountdown=!1,void 0===o.viewerHeight&&(o.viewerHeight="auto"),void 0===o.viewerWidth&&(o.viewerWidth="auto"),void 0===o.outputHeight&&(o.outputHeight=o.viewerHeight),void 0===o.outputWidth&&(o.outputWidth=o.viewerWidth),(void 0===o.cropHeight||void 0===o.cropWidth)&&(o.cropHeight=!1,o.cropWith=!1),Webcam.set({width:o.viewerWidth,height:o.viewerHeight,dest_width:o.outputWidth,dest_height:o.outputHeight,crop_width:o.cropWidth,crop_height:o.cropHeight,image_format:o.imageFormat,jpeg_quality:o.jpegQuality,force_flash:!1}),"undefined"!==o.flashFallbackUrl&&Webcam.setSWFLocation(o.flashFallbackUrl),Webcam.attach("#ng-camera-feed"),Webcam.on("load",function(){console.info("library loaded"),o.$apply(function(){o.libraryLoaded=!0})}),Webcam.on("live",function(){console.info("camera live"),o.$apply(function(){o.cameraLive=!0})}),Webcam.on("error",function(t){console.error("WebcameJS directive ERROR: ",t)}),void 0!==o.shutterUrl&&(o.shutter=new Audio,o.shutter.autoplay=!1,o.shutter.src=navigator.userAgent.match(/Firefox/)?o.shutterUrl.split(".")[0]+".ogg":o.shutterUrl),void 0!==o.countdown&&(o.countdownTime=1e3*parseInt(o.countdown),o.countdownText=parseInt(o.countdown)),o.countdownStart=function(){o.activeCountdown=!0,o.countdownPromise=t.defer(),o.countdownTick=setInterval(function(){return o.$apply(function(){var t;t=parseInt(o.countdownText)-1,0===t?(o.countdownText=null!=o.captureMessage?o.captureMessage:"GO!",clearInterval(o.countdownTick),o.countdownPromise.resolve()):o.countdownText=t})},1e3)},o.getSnapshot=function(){void 0!==o.countdown?(o.countdownStart(),o.countdownPromise.promise.then(function(){e(function(){o.activeCountdown=!1,o.countdownText=parseInt(o.countdown)},2e3),void 0!==o.shutterUrl&&o.shutter.play(),Webcam.snap(function(t){o.snapshot=t})})):(void 0!==o.shutterUrl&&o.shutter.play(),Webcam.snap(function(t){o.snapshot=t}))},o.$on("$destroy",function(){Webcam.reset()})}return{restrict:"E",scope:{actionMessage:"@",captureMessage:"@",countdown:"@",flashFallbackUrl:"@",overlayUrl:"@",outputHeight:"@",outputWidth:"@",shutterUrl:"@",viewerHeight:"@",viewerWidth:"@",cropHeight:"@",cropWidth:"@",imageFormat:"@",jpegQuality:"@",snapshot:"="},template:['<div class="ng-camera">','<div class="ng-camera-countdown" ng-if="countdown" ng-show="activeCountdown">','<p class="tick">{{countdownText}}</p>',"</div>",'<div class="ng-camera-stack">','<img class="ng-camera-overlay" ng-if="overlayUrl" ng-show="cameraLive" ng-src="{{overlayUrl}}" alt="overlay">','<div id="ng-camera-feed"></div>',"</div>",'<button id="ng-camera-action" ng-click="getSnapshot()">{{actionMessage}}</button>',"</div>"].join(""),link:o}}t.module("camera").directive("ngCamera",e),e.$inject=["$q","$timeout"]}(angular);
+/* global Webcam */
+(function(angular) {
+    'use strict';
+
+    angular
+        .module('camera')
+        .directive('ngCamera', directive);
+
+    directive.$inject = ['$q', '$timeout'];
+
+    function directive($q, $timeout) {
+        return {
+            'restrict': 'E',
+            'scope': {
+                'actionMessage': '@',
+                'captureMessage': '@',
+                'countdown': '@',
+                'flashFallbackUrl': '@',
+                'overlayUrl': '@',
+                'outputHeight': '@',
+                'outputWidth': '@',
+                'shutterUrl': '@',
+                'viewerHeight': '@',
+                'viewerWidth': '@',
+                'cropHeight': '@',
+                'cropWidth': '@',
+                'imageFormat': '@',
+                'jpegQuality': '@',
+                'constraints': '=',
+                'snapshot': '='
+            },
+            // 'templateUrl': '/angular/ng-camera.html',
+            'template': ['<div class="ng-camera">',
+                '<div class="ng-camera-countdown" ng-if="countdown" ng-show="activeCountdown">',
+                '<p class="tick">{{countdownText}}</p>',
+                '</div>',
+                '<div class="ng-camera-stack">',
+                '<img class="ng-camera-overlay" ng-if="overlayUrl" ng-show="cameraLive" ng-src="{{overlayUrl}}" alt="overlay">',
+                '<div id="ng-camera-feed"></div>',
+                '</div>',
+                '<button id="ng-camera-action" ng-click="getSnapshot()">{{actionMessage}}</button>',
+                '</div>'].join(''),
+            'link': link,
+            controller: [ '$scope', function ($scope) {
+              // wait until after $apply
+              $timeout(function(){
+                console.log($scope.ngCamera);
+                // use $scope.$emit to pass it to controller
+                $scope.$emit('notification', $scope.ngCamera);
+              });
+            }]
+        };
+
+        function link(scope, element, attrs) {
+            /**
+             * Set default variables
+             */
+            scope.libraryLoaded = false;
+            scope.cameraLive = false;
+            scope.activeCountdown = false;
+
+            /**
+             * Set dimensions
+             */
+            if(scope.viewerHeight === undefined) {
+                scope.viewerHeight = 'auto';
+            }
+            if(scope.viewerWidth === undefined) {
+                scope.viewerWidth = 'auto';
+            }
+            if(scope.outputHeight === undefined) {
+                scope.outputHeight = scope.viewerHeight;
+            }
+            if(scope.outputWidth === undefined) {
+                scope.outputWidth = scope.viewerWidth;
+            }
+
+            /**
+             * Disable cropping if one or the two params are undefined
+             */
+            if(scope.cropHeight === undefined || scope.cropWidth === undefined) {
+                scope.cropHeight = false;
+                scope.cropWith = false;
+            }
+
+            /**
+             * Set configuration parameters
+             * @type {object}
+             */
+
+            console.log(scope);
+            scope.$on('ready_devices', function(e, con){
+              Webcam.set({
+                width: scope.viewerWidth,
+                height: scope.viewerHeight,
+                dest_width: scope.outputWidth,
+                dest_height: scope.outputHeight,
+                crop_width: scope.cropWidth,
+                crop_height: scope.cropHeight,
+                image_format: scope.imageFormat,
+                jpeg_quality: scope.jpegQuality,
+                constraints: con,
+                force_flash: false
+              });
+              if(scope.flashFallbackUrl !== 'undefined') {
+                Webcam.setSWFLocation(scope.flashFallbackUrl);
+              }
+              Webcam.attach('#ng-camera-feed');
+
+              /**
+              * Register WebcamJS events
+              */
+              Webcam.on('load', function() {
+                console.info('library loaded');
+                scope.$apply(function() {
+                  scope.libraryLoaded = true;
+                });
+              });
+              Webcam.on('live', function() {
+                console.info('camera live');
+                scope.$apply(function() {
+                  scope.cameraLive = true;
+                });
+              });
+              Webcam.on('error', function(error) {
+                console.error('WebcameJS directive ERROR: ', error);
+              });
+
+              /**
+              * Preload the shutter sound
+              */
+              if(scope.shutterUrl !== undefined) {
+                scope.shutter = new Audio();
+                scope.shutter.autoplay = false;
+                if(navigator.userAgent.match(/Firefox/)) {
+                  scope.shutter.src = scope.shutterUrl.split('.')[0] + '.ogg';
+                } else {
+                  scope.shutter.src = scope.shutterUrl;
+                }
+              }
+
+              /**
+              * Set countdown
+              */
+              if(scope.countdown !== undefined) {
+                scope.countdownTime = parseInt(scope.countdown) * 1000;
+                scope.countdownText = parseInt(scope.countdown);
+              }
+            });
+            scope.countdownStart = function() {
+                scope.activeCountdown = true;
+                scope.countdownPromise = $q.defer();
+                scope.countdownTick = setInterval(function() {
+                    return scope.$apply(function() {
+                        var nextTick;
+                        nextTick = parseInt(scope.countdownText) - 1;
+                        if(nextTick === 0) {
+                            scope.countdownText = scope.captureMessage != null ? scope.captureMessage : 'GO!';
+                            clearInterval(scope.countdownTick);
+                            scope.countdownPromise.resolve();
+                        }else{
+                            scope.countdownText = nextTick;
+                        }
+                    });
+                }, 1000);
+            };
+
+            /**
+             * Get snapshot
+             */
+            scope.getSnapshot = function() {
+                if(scope.countdown !== undefined) {
+                    scope.countdownStart();
+                    scope.countdownPromise.promise.then(function() {
+                        $timeout(function() {
+                            scope.activeCountdown = false;
+                            scope.countdownText = parseInt(scope.countdown);
+                        }, 2000);
+
+                        if(scope.shutterUrl !== undefined) {
+                            scope.shutter.play();
+                        }
+
+                        Webcam.snap(function(data_uri) {
+                            scope.snapshot = data_uri;
+                        });
+                    });
+                } else {
+                    if(scope.shutterUrl !== undefined) {
+                        scope.shutter.play();
+                    }
+
+                    Webcam.snap(function(data_uri) {
+                        scope.snapshot = data_uri;
+                    });
+                }
+            };
+
+            scope.$on('$destroy', function() {
+                Webcam.reset();
+            });
+        }
+    }
+
+})(angular);
