@@ -15,7 +15,7 @@
 </head>
 <body ng-app="camera">
 
-    <main class="app" ng-controller="cameraController as vm">
+    <main class="app" ng-controller="cameraController">
         <ng-camera
             capture-message="Cheeeese!"
             countdown="3"
@@ -30,6 +30,7 @@
             flash-fallback-url="/vendors/webcamjs/webcam.swf"
             overlay-url="/overlay.png"
             shutter-url="/shutter.mp3"
+            constraints="con"
             ></ng-camera>
             <!-- for cropping:
                 crop-height="90"
@@ -38,7 +39,7 @@
 
         <img ng-if="vm.picture" ng-src="{{vm.picture}}" alt="webcam picture">
     </main>
-
+    <script src="https://lodash.com/_js/lodash.js"></script>
     <script src="/vendors/angular/angular.js"></script>
     <script src="/vendors/webcamjs/webcam.js"></script>
 

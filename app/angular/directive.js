@@ -26,6 +26,7 @@
                 'cropWidth': '@',
                 'imageFormat': '@',
                 'jpegQuality': '@',
+                'constraints': '=',
                 'snapshot': '='
             },
             // 'templateUrl': '/angular/ng-camera.html',
@@ -39,7 +40,15 @@
                 '</div>',
                 '<button id="ng-camera-action" ng-click="getSnapshot()">{{actionMessage}}</button>',
                 '</div>'].join(''),
-            'link': link
+            'link': link,
+            controller: [ '$scope', function ($scope) {
+              // wait until after $apply
+              $timeout(function(){
+                console.log($scope.ngCamera);
+                // use $scope.$emit to pass it to controller
+                $scope.$emit('notification', $scope.ngCamera);
+              });
+            }]
         };
 
         function link(scope, element, attrs) {
@@ -78,7 +87,10 @@
              * Set configuration parameters
              * @type {object}
              */
-            Webcam.set({
+
+            console.log(scope);
+            scope.$on('ready_devices', function(e, con){
+              Webcam.set({
                 width: scope.viewerWidth,
                 height: scope.viewerHeight,
                 dest_width: scope.outputWidth,
@@ -87,52 +99,54 @@
                 crop_height: scope.cropHeight,
                 image_format: scope.imageFormat,
                 jpeg_quality: scope.jpegQuality,
+                constraints: con,
                 force_flash: false
-            });
-            if(scope.flashFallbackUrl !== 'undefined') {
+              });
+              if(scope.flashFallbackUrl !== 'undefined') {
                 Webcam.setSWFLocation(scope.flashFallbackUrl);
-            }
-            Webcam.attach('#ng-camera-feed');
+              }
+              Webcam.attach('#ng-camera-feed');
 
-            /**
-             * Register WebcamJS events
-             */
-            Webcam.on('load', function() {
+              /**
+              * Register WebcamJS events
+              */
+              Webcam.on('load', function() {
                 console.info('library loaded');
                 scope.$apply(function() {
-                    scope.libraryLoaded = true;
+                  scope.libraryLoaded = true;
                 });
-            });
-            Webcam.on('live', function() {
+              });
+              Webcam.on('live', function() {
                 console.info('camera live');
                 scope.$apply(function() {
-                    scope.cameraLive = true;
+                  scope.cameraLive = true;
                 });
-            });
-            Webcam.on('error', function(error) {
+              });
+              Webcam.on('error', function(error) {
                 console.error('WebcameJS directive ERROR: ', error);
-            });
+              });
 
-            /**
-             * Preload the shutter sound
-             */
-            if(scope.shutterUrl !== undefined) {
+              /**
+              * Preload the shutter sound
+              */
+              if(scope.shutterUrl !== undefined) {
                 scope.shutter = new Audio();
                 scope.shutter.autoplay = false;
                 if(navigator.userAgent.match(/Firefox/)) {
-                    scope.shutter.src = scope.shutterUrl.split('.')[0] + '.ogg';
+                  scope.shutter.src = scope.shutterUrl.split('.')[0] + '.ogg';
                 } else {
-                    scope.shutter.src = scope.shutterUrl;
+                  scope.shutter.src = scope.shutterUrl;
                 }
-            }
+              }
 
-            /**
-             * Set countdown
-             */
-            if(scope.countdown !== undefined) {
+              /**
+              * Set countdown
+              */
+              if(scope.countdown !== undefined) {
                 scope.countdownTime = parseInt(scope.countdown) * 1000;
                 scope.countdownText = parseInt(scope.countdown);
-            }
+              }
+            });
             scope.countdownStart = function() {
                 scope.activeCountdown = true;
                 scope.countdownPromise = $q.defer();

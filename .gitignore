@@ -1,6 +1,7 @@
 # Folders
 /app/vendors/
 /app/node_modules/
+/bower_components
 
 # Files
 .DS_Store
